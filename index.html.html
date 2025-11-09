@@ -1,0 +1,689 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Culebrita Matemática</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(to bottom, #4CAF50, #81C784);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        h1 {
+            margin: 20px 0;
+            font-size: 2.5em;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        canvas {
+            background: #000;
+            border: 4px solid #fff;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .scoreboard {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            margin: 20px 0;
+            padding: 10px 20px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 25px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+            font-weight: bold;
+        }
+
+        .score {
+            font-size: 1.2em;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 8px 15px;
+            border-radius: 20px;
+        }
+
+        .score.correct {
+            background: #4CAF50;
+            color: #fff;
+        }
+
+        .score.wrong {
+            background: #f44336;
+            color: #fff;
+        }
+
+        .question-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.8);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .question-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .question-box {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            animation: popIn 0.3s ease-in-out;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .question-text {
+            font-size: 1.2em;
+            margin-bottom: 20px;
+            line-height: 1.5;
+            color: #333;
+        }
+
+        .options {
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .option {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.2s ease-in-out;
+            border: 2px solid transparent;
+        }
+
+        .option:hover {
+            background: #e0e0e0;
+            transform: translateY(-2px);
+        }
+
+        .option.correct {
+            background: #4CAF50 !important;
+            color: #fff;
+            border-color: #45a049;
+        }
+
+        .option.wrong {
+            background: #f44336 !important;
+            color: #fff;
+            border-color: #d32f2f;
+        }
+
+        .results-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            opacity: 0;
+            visibility: hidden;
+            transition: opacity 0.3s ease-in-out;
+        }
+
+        .results-container.active {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        .results-box {
+            background: #fff;
+            border-radius: 15px;
+            padding: 30px;
+            max-width: 600px;
+            width: 90%;
+            animation: popIn 0.3s ease-in-out;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+        }
+
+        .results-title {
+            font-size: 2em;
+            margin-bottom: 20px;
+            text-align: center;
+            color: #333;
+        }
+
+        .results-score {
+            font-size: 1.5em;
+            margin-bottom: 30px;
+            text-align: center;
+            color: #333;
+        }
+
+        .feedback {
+            margin-top: 20px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        .feedback-item {
+            margin-bottom: 15px;
+            padding: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .feedback-question {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+        }
+
+        .feedback-answer.correct {
+            color: #4CAF50;
+        }
+
+        .feedback-answer.wrong {
+            color: #f44336;
+        }
+
+        .feedback-explanation {
+            margin-top: 5px;
+            color: #666;
+            font-style: italic;
+        }
+
+        .restart-button {
+            margin-top: 20px;
+            padding: 12px 25px;
+            background: #4CAF50;
+            color: #fff;
+            border: none;
+            border-radius: 25px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: all 0.2s ease-in-out;
+            display: block;
+            width: 100%;
+        }
+
+        .restart-button:hover {
+            background: #45a049;
+            transform: scale(1.05);
+        }
+
+        @keyframes popIn {
+            from { transform: scale(0.9); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+
+        .effect {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            pointer-events: none;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10em;
+        }
+
+        .correct-effect, .wrong-effect {
+            opacity: 0;
+            transition: opacity 0.5s ease-in-out;
+            position: absolute;
+            font-size: 10em;
+            pointer-events: none;
+        }
+
+        .correct-effect.active {
+            color: #4CAF50;
+            opacity: 0.3;
+            animation: popIn 0.5s ease-in-out;
+        }
+
+        .wrong-effect.active {
+            color: #f44336;
+            opacity: 0.3;
+            animation: popIn 0.5s ease-in-out;
+        }
+
+        @media (max-width: 600px) {
+            h1 {
+                font-size: 2em;
+            }
+            
+            .scoreboard {
+                flex-direction: column;
+                gap: 15px;
+                padding: 15px;
+            }
+            
+            .question-box, .results-box {
+                padding: 20px;
+            }
+            
+            .effect {
+                font-size: 6em;
+            }
+        }
+    </style>
+</head>
+<body>
+    <h1>¡Culebrita Matemática!</h1>
+    
+    <div class="scoreboard">
+        <div class="score correct">
+            <span>✓</span>
+            <span id="correctCount">0</span>
+        </div>
+        <div class="score wrong">
+            <span>✗</span>
+            <span id="wrongCount">0</span>
+        </div>
+    </div>
+    
+    <canvas id="gameCanvas" width="600" height="400"></canvas>
+
+    <div class="question-container" id="questionContainer">
+        <div class="question-box" id="questionBox">
+            <div class="question-text" id="questionText"></div>
+            <div class="options" id="optionsContainer"></div>
+        </div>
+    </div>
+
+    <div class="results-container" id="resultsContainer">
+        <div class="results-box">
+            <div class="results-title">¡Fin del Juego!</div>
+            <div class="results-score" id="resultsScore"></div>
+            <div class="feedback" id="feedbackContent"></div>
+            <button class="restart-button" onclick="restartGame()">Jugar de Nuevo</button>
+        </div>
+    </div>
+
+    <div class="effect">
+        <div class="correct-effect" id="correctEffect">✓</div>
+        <div class="wrong-effect" id="wrongEffect">✗</div>
+    </div>
+
+    <audio id="correctSound">
+        <source src="https://www.soundjay.com/buttons/sounds/button-16.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="wrongSound">
+        <source src="https://www.soundjay.com/buttons/sounds/button-11.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="appleSound">
+        <source src="https://www.soundjay.com/buttons/sounds/button-14.mp3" type="audio/mpeg">
+    </audio>
+    <audio id="winSound">
+        <source src="https://www.soundjay.com/human/sounds/applause-8.mp3" type="audio/mpeg">
+    </audio>
+
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        let snake = [{x: 200, y: 200}, {x: 190, y: 200}, {x: 180, y: 200}];
+        let dx = 10;
+        let dy = 0;
+        let food = {x: 300, y: 300};
+        let gameSpeed = 100;
+        let gameInterval;
+        let questions = [];
+        let currentQuestionIndex = 0;
+        let answers = [];
+        let questionsCompleted = false;
+
+        const questionContainer = document.getElementById('questionContainer');
+        const questionBox = document.getElementById('questionBox');
+        const questionText = document.getElementById('questionText');
+        const optionsContainer = document.getElementById('optionsContainer');
+        const resultsContainer = document.getElementById('resultsContainer');
+        const resultsScore = document.getElementById('resultsScore');
+        const feedbackContent = document.getElementById('feedbackContent');
+        const correctCount = document.getElementById('correctCount');
+        const wrongCount = document.getElementById('wrongCount');
+        const correctEffect = document.getElementById('correctEffect');
+        const wrongEffect = document.getElementById('wrongEffect');
+        const correctSound = document.getElementById('correctSound');
+        const wrongSound = document.getElementById('wrongSound');
+        const appleSound = document.getElementById('appleSound');
+        const winSound = document.getElementById('winSound');
+
+        function initializeQuestions() {
+            questions = [
+                {
+                    question: "En Medellín, un paquete de café vale $4500. Si tiene un descuento del 20%, ¿cuánto costará después del descuento?",
+                    options: ["$3600", "$3800", "$4000", "$4200"],
+                    answer: 0,
+                    explanation: "El 20% de $4500 es $900 (4500 × 0.20), por lo tanto, $4500 - $900 = $3600."
+                },
+                {
+                    question: "Un agricultor antioqueño cosechó 800 kilos de plátano. Vendió el 35% al mercado de Medellín y el 40% al mercado de Bogotá. ¿Cuántos kilos quedan en su finca?",
+                    options: ["200 kilos", "240 kilos", "280 kilos", "320 kilos"],
+                    answer: 0,
+                    explanation: "Vendió 35% + 40% = 75%, quedando el 25%: 800 × 0.25 = 200 kilos."
+                },
+                {
+                    question: "Un restaurante en Cartagena ofrece un menú del día por $18000 con un adicional del 10% por servicio. ¿Cuál es el costo total del menú?",
+                    options: ["$19800", "$19600", "$20000", "$19500"],
+                    answer: 0,
+                    explanation: "10% de $18000 es $1800, entonces $18000 + $1800 = $19800."
+                },
+                {
+                    question: "En un colegio de Cali, el 70% de los 600 estudiantes participan en actividades extracurriculares. De éstos, el 60% practican deportes. ¿Cuántos estudiantes practican deportes?",
+                    options: ["252 estudiantes", "280 estudiantes", "360 estudiantes", "420 estudiantes"],
+                    answer: 0,
+                    explanation: "70% de 600 = 420 estudiantes. 60% de 420 = 252 estudiantes."
+                },
+                {
+                    question: "Un viaje en avión de Bogotá a Barranquilla tiene un valor base de $250000. Si hay un impuesto del 16% sobre el valor del pasaje, ¿cuál será el precio final?",
+                    options: ["$290000", "$285000", "$280000", "$295000"],
+                    answer: 0,
+                    explanation: "16% de $250000 es $40000, entonces $250000 + $40000 = $290000."
+                },
+                {
+                    question: "Una empresa de transporte en Pereira aumentó sus tarifas en un 15%. Si el precio anterior era $2000, ¿cuál es el nuevo precio?",
+                    options: ["$2200", "$2300", "$2400", "$2500"],
+                    answer: 1,
+                    explanation: "15% de $2000 es $300, entonces $2000 + $300 = $2300."
+                },
+                {
+                    question: "Un grupo de estudiantes de Bucaramanga recolectó $360000 para una obra social. El 40% lo obtuvieron vendiendo rifas, el 35% con una venta de postres y el resto con donaciones. ¿Cuánto dinero obtuvieron con donaciones?",
+                    options: ["$90000", "$80000", "$100000", "$70000"],
+                    answer: 0,
+                    explanation: "40% + 35% = 75%, quedando 25%: $360000 × 0.25 = $90000."
+                },
+                {
+                    question: "En un almacén de Pasto, un televisor cuesta $1200000. Hay dos descuentos sucesivos: el primero del 20% y el segundo del 10% sobre el precio ya rebajado. ¿cuál es el precio final?",
+                    options: ["$864000", "$900000", "$960000", "$880000"],
+                    answer: 0,
+                    explanation: "Primer descuento: $1200000 - 20% = $960000. Segundo descuento: $960000 - 10% = $864000."
+                },
+                {
+                    question: "Un agricultor de Tolima sembró 5 hectáreas de arroz. Obtuvo 6 toneladas por hectárea y vendió cada tonelada a $1500000. ¿Cuánto dinero obtuvo en total?",
+                    options: ["$45000000", "$42000000", "$48000000", "$40000000"],
+                    answer: 0,
+                    explanation: "5 hectáreas × 6 toneladas = 30 toneladas. 30 × $1500000 = $45000000."
+                },
+                {
+                    question: "Una empresa de Cundinamarca tiene un proyecto de construcción que cuesta $3200 millones. Ya se ha invertido el 65% del proyecto. ¿Qué cantidad falta por invertir?",
+                    options: ["$1120 millones", "$1040 millones", "$1200 millones", "$960 millones"],
+                    answer: 0,
+                    explanation: "Falta el 35%: $3200 millones × 0.35 = $1120 millones."
+                }
+            ];
+        }
+
+        function drawSnake() {
+            ctx.fillStyle = '#00FF00';
+            snake.forEach(segment => {
+                ctx.fillRect(segment.x, segment.y, 10, 10);
+            });
+        }
+
+        function moveSnake() {
+            const head = {x: snake[0].x + dx, y: snake[0].y + dy};
+            snake.unshift(head);
+
+            if (head.x === food.x && head.y === food.y) {
+                generateFood();
+                appleSound.play();
+                askQuestion();
+            } else {
+                snake.pop();
+            }
+        }
+
+        function generateFood() {
+            food.x = Math.floor(Math.random() * canvas.width / 10) * 10;
+            food.y = Math.floor(Math.random() * canvas.height / 10) * 10;
+        }
+
+        function drawFood() {
+            ctx.fillStyle = '#FF0000';
+            ctx.fillRect(food.x, food.y, 10, 10);
+        }
+
+        function checkCollision() {
+            const head = snake[0];
+            return (head.x < 0 || head.x >= canvas.width || head.y < 0 || head.y >= canvas.height);
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            if (checkCollision()) {
+                clearInterval(gameInterval);
+                showResults(false);
+                return;
+            }
+
+            moveSnake();
+            drawFood();
+            drawSnake();
+        }
+
+        function changeDirection(event) {
+            const keyPressed = event.keyCode;
+            const LEFT = 37;
+            const UP = 38;
+            const RIGHT = 39;
+            const DOWN = 40;
+
+            const goingLeft = dx === -10;
+            const goingUp = dy === -10;
+            const goingRight = dx === 10;
+            const goingDown = dy === 10;
+
+            switch (keyPressed) {
+                case LEFT:
+                    if (!goingRight) {
+                        dx = -10;
+                        dy = 0;
+                    }
+                    break;
+                case UP:
+                    if (!goingDown) {
+                        dx = 0;
+                        dy = -10;
+                    }
+                    break;
+                case RIGHT:
+                    if (!goingLeft) {
+                        dx = 10;
+                        dy = 0;
+                    }
+                    break;
+                case DOWN:
+                    if (!goingUp) {
+                        dx = 0;
+                        dy = 10;
+                    }
+                    break;
+            }
+        }
+
+        function startGame() {
+            initializeQuestions();
+            snake = [{x: 200, y: 200}, {x: 190, y: 200}, {x: 180, y: 200}];
+            dx = 10;
+            dy = 0;
+            generateFood();
+            currentQuestionIndex = 0;
+            answers = [];
+            questionsCompleted = false;
+            correctCount.textContent = '0';
+            wrongCount.textContent = '0';
+
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+
+            gameInterval = setInterval(drawGame, gameSpeed);
+        }
+
+        function shuffleArray(array) {
+            const newArray = [...array];
+            for (let i = newArray.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+            }
+            return newArray;
+        }
+
+        function askQuestion() {
+            if (currentQuestionIndex >= questions.length) {
+                questionsCompleted = true;
+                return;
+            }
+
+            clearInterval(gameInterval);
+
+            const question = questions[currentQuestionIndex];
+            questionText.textContent = question.question;
+            optionsContainer.innerHTML = '';
+
+            // Create array of options with correct status
+            const optionsWithStatus = question.options.map((option, index) => ({
+                text: option,
+                isCorrect: index === question.answer
+            }));
+
+            // Shuffle options
+            const shuffledOptions = shuffleArray(optionsWithStatus);
+
+            // Create buttons for each shuffled option
+            shuffledOptions.forEach(optionObj => {
+                const button = document.createElement('div');
+                button.className = 'option';
+                button.textContent = optionObj.text;
+                button.addEventListener('click', () => handleAnswer(optionObj.text, question.options[question.answer], question));
+                optionsContainer.appendChild(button);
+            });
+
+            questionContainer.classList.add('active');
+        }
+
+        function handleAnswer(selectedText, correctText, question) {
+            const isCorrect = selectedText === correctText;
+
+            answers.push({
+                question: question.question,
+                selectedText: selectedText,
+                correctText: correctText,
+                isCorrect: isCorrect,
+                explanation: question.explanation
+            });
+
+            if (isCorrect) {
+                correctCount.textContent = parseInt(correctCount.textContent) + 1;
+                correctEffect.classList.add('active');
+                correctSound.play();
+                setTimeout(() => correctEffect.classList.remove('active'), 1000);
+            } else {
+                wrongCount.textContent = parseInt(wrongCount.textContent) + 1;
+                wrongEffect.classList.add('active');
+                wrongSound.play();
+                setTimeout(() => wrongEffect.classList.remove('active'), 1000);
+            }
+
+            questionContainer.classList.remove('active');
+
+            gameInterval = setInterval(drawGame, gameSpeed);
+
+            currentQuestionIndex++;
+            
+            if (currentQuestionIndex >= questions.length) {
+                questionsCompleted = true;
+                clearInterval(gameInterval);
+                winSound.play();
+                showResults(true);
+            }
+        }
+
+        function showResults(victory = false) {
+            clearInterval(gameInterval);
+            document.querySelector('.results-title').textContent = victory ? '¡Felicidades! Has completado todas las preguntas' : '¡Fin del Juego!';
+
+            const correct = answers.filter(a => a.isCorrect).length;
+            const total = questions.length;
+            const percentage = Math.round((correct / total) * 100);
+
+            resultsScore.innerHTML = `Obtuviste <strong>${correct}</strong> respuestas correctas de ${total} (${percentage}%)`;
+
+            feedbackContent.innerHTML = '';
+            answers.forEach((answer, index) => {
+                const item = document.createElement('div');
+                item.className = 'feedback-item';
+
+                const question = document.createElement('div');
+                question.className = 'feedback-question';
+                question.textContent = `Pregunta ${index + 1}: ${answer.question}`;
+
+                const answerDisplay = document.createElement('div');
+                answerDisplay.className = `feedback-answer ${answer.isCorrect ? 'correct' : 'wrong'}`;
+                answerDisplay.innerHTML = `Tu respuesta: ${answer.selectedText}<br>` +
+                                          `Respuesta correcta: ${answer.correctText}`;
+
+                const explanation = document.createElement('div');
+                explanation.className = 'feedback-explanation';
+                explanation.textContent = `Explicación: ${answer.explanation}`;
+
+                item.appendChild(question);
+                item.appendChild(answerDisplay);
+                item.appendChild(explanation);
+                feedbackContent.appendChild(item);
+            });
+
+            resultsContainer.classList.add('active');
+        }
+
+        function restartGame() {
+            resultsContainer.classList.remove('active');
+            startGame();
+        }
+
+        document.addEventListener('keydown', changeDirection);
+        window.addEventListener('resize', () => {
+            const aspectRatio = canvas.width / canvas.height;
+            const maxWidth = window.innerWidth * 0.9;
+            const maxHeight = window.innerHeight * 0.7;
+            
+            if (maxWidth / aspectRatio <= maxHeight) {
+                canvas.style.width = `${maxWidth}px`;
+                canvas.style.height = `${maxWidth / aspectRatio}px`;
+            } else {
+                canvas.style.width = `${maxHeight * aspectRatio}px`;
+                canvas.style.height = `${maxHeight}px`;
+            }
+        });
+
+        window.addEventListener('load', () => {
+            startGame();
+            window.dispatchEvent(new Event('resize'));
+        });
+    </script>
+</body>
+</html>
